@@ -948,6 +948,18 @@ elif menu == "System Settings":
     
     import os
     
+    # Helper function to mask credentials safely for screen presentation
+    def mask_value(val: str, is_email: bool = False) -> str:
+        if not val:
+            return ""
+        if is_email and "@" in val:
+            parts = val.split("@")
+            name = parts[0]
+            domain = parts[1]
+            masked_name = name[:2] + "•••" + name[-1:] if len(name) > 3 else "•••"
+            return f"{masked_name}@{domain}"
+        return "••••••••"
+        
     # Helper function to write to .env
     def save_env_variables(vars_dict: dict):
         env_path = ".env"
@@ -994,57 +1006,57 @@ elif menu == "System Settings":
         
         with col1:
             st.markdown("### 📧 SMTP Email Outreach Settings")
-            smtp_host = st.text_input("SMTP Host", value=current_smtp_host)
-            smtp_port = st.text_input("SMTP Port", value=current_smtp_port)
-            smtp_user = st.text_input("SMTP Username (Email Address)", value=current_smtp_user)
-            smtp_pass = st.text_input("SMTP Password / App Password", value=current_smtp_pass, type="password")
+            smtp_host = st.text_input("SMTP Host", value="", placeholder=current_smtp_host)
+            smtp_port = st.text_input("SMTP Port", value="", placeholder=str(current_smtp_port))
+            smtp_user = st.text_input("SMTP Username (Email Address)", value="", placeholder=mask_value(current_smtp_user, is_email=True) or "Enter SMTP Username")
+            smtp_pass = st.text_input("SMTP Password / App Password", value="", placeholder=mask_value(current_smtp_pass) or "Enter SMTP Password", type="password")
             
             st.markdown("### 💬 Social Media Outreach API Tokens")
-            tg_token = st.text_input("Telegram Bot API Token", value=current_tg_token)
-            vk_token = st.text_input("VKontakte Access Token", value=current_vk_token, type="password")
+            tg_token = st.text_input("Telegram Bot API Token", value="", placeholder=mask_value(current_tg_token) or "Enter Telegram Bot Token")
+            vk_token = st.text_input("VKontakte Access Token", value="", placeholder=mask_value(current_vk_token) or "Enter VK Access Token", type="password")
             
             st.markdown("### 🤖 Artificial Intelligence")
-            gemini_key = st.text_input("Gemini API Key (for Outreach Personalization)", value=current_gemini_key, type="password")
+            gemini_key = st.text_input("Gemini API Key (for Outreach Personalization)", value="", placeholder=mask_value(current_gemini_key) or "Enter Gemini API Key", type="password")
             
         with col2:
             st.markdown("### 🟢 WhatsApp API Gateway Settings")
             wa_gateway = st.selectbox(
                 "WhatsApp Gateway Type",
                 ["none", "green-api", "twilio"],
-                index=["none", "green-api", "twilio"].index(current_wa_gateway) if current_wa_gateway in ["none", "green-api", "twilio"] else 0
+                index=["none", "green-api", "twilio"].index(wa_gateway_index) if 'wa_gateway_index' in locals() else (["none", "green-api", "twilio"].index(current_wa_gateway) if current_wa_gateway in ["none", "green-api", "twilio"] else 0)
             )
             
             st.markdown("#### Green-API Credentials")
-            green_inst = st.text_input("Green-API Instance ID", value=current_green_inst)
-            green_tok = st.text_input("Green-API API Token Instance", value=current_green_tok, type="password")
+            green_inst = st.text_input("Green-API Instance ID", value="", placeholder=current_green_inst or "Enter Instance ID")
+            green_tok = st.text_input("Green-API API Token Instance", value="", placeholder=mask_value(current_green_tok) or "Enter Token Instance", type="password")
             
             st.markdown("#### Twilio WhatsApp Credentials")
-            twilio_sid = st.text_input("Twilio Account SID", value=current_twilio_sid)
-            twilio_tok = st.text_input("Twilio Auth Token", value=current_twilio_tok, type="password")
-            twilio_from = st.text_input("Twilio WhatsApp From (e.g. +14155238886)", value=current_twilio_from)
+            twilio_sid = st.text_input("Twilio Account SID", value="", placeholder=mask_value(current_twilio_sid) or "Enter Account SID")
+            twilio_tok = st.text_input("Twilio Auth Token", value="", placeholder=mask_value(current_twilio_tok) or "Enter Auth Token", type="password")
+            twilio_from = st.text_input("Twilio WhatsApp From (e.g. +14155238886)", value="", placeholder=current_twilio_from or "Enter From Number")
             
             st.markdown("### 🔌 CRM Integration Webhooks")
-            crm_webhook = st.text_input("CRM Exporter Webhook URL", value=current_crm_webhook)
+            crm_webhook = st.text_input("CRM Exporter Webhook URL", value="", placeholder=mask_value(current_crm_webhook) or "Enter Webhook URL")
             
         st.markdown("---")
         submit_btn = st.form_submit_button("💾 Save Credentials & Re-load Environment", use_container_width=True)
         
         if submit_btn:
             new_vars = {
-                "SMTP_HOST": smtp_host,
-                "SMTP_PORT": smtp_port,
-                "SMTP_USERNAME": smtp_user,
-                "SMTP_PASSWORD": smtp_pass,
+                "SMTP_HOST": smtp_host if smtp_host else current_smtp_host,
+                "SMTP_PORT": smtp_port if smtp_port else current_smtp_port,
+                "SMTP_USERNAME": smtp_user if smtp_user else current_smtp_user,
+                "SMTP_PASSWORD": smtp_pass if smtp_pass else current_smtp_pass,
                 "WHATSAPP_GATEWAY_TYPE": wa_gateway,
-                "WHATSAPP_GREEN_INSTANCE": green_inst,
-                "WHATSAPP_GREEN_TOKEN": green_tok,
-                "TWILIO_ACCOUNT_SID": twilio_sid,
-                "TWILIO_AUTH_TOKEN": twilio_tok,
-                "TWILIO_WHATSAPP_FROM": twilio_from,
-                "TELEGRAM_BOT_TOKEN": tg_token,
-                "VK_ACCESS_TOKEN": vk_token,
-                "GEMINI_API_KEY": gemini_key,
-                "CRM_WEBHOOK_URL": crm_webhook,
+                "WHATSAPP_GREEN_INSTANCE": green_inst if green_inst else current_green_inst,
+                "WHATSAPP_GREEN_TOKEN": green_tok if green_tok else current_green_tok,
+                "TWILIO_ACCOUNT_SID": twilio_sid if twilio_sid else current_twilio_sid,
+                "TWILIO_AUTH_TOKEN": twilio_tok if twilio_tok else current_twilio_tok,
+                "TWILIO_WHATSAPP_FROM": twilio_from if twilio_from else current_twilio_from,
+                "TELEGRAM_BOT_TOKEN": tg_token if tg_token else current_tg_token,
+                "VK_ACCESS_TOKEN": vk_token if vk_token else current_vk_token,
+                "GEMINI_API_KEY": gemini_key if gemini_key else current_gemini_key,
+                "CRM_WEBHOOK_URL": crm_webhook if crm_webhook else current_crm_webhook,
             }
             try:
                 # Save to .env
@@ -1053,6 +1065,7 @@ elif menu == "System Settings":
                 for k, v in new_vars.items():
                     os.environ[k] = v
                 st.success("Credentials saved to `.env` and environment variables re-loaded successfully!")
+                st.rerun()
             except Exception as e:
                 st.error(f"Failed to save settings: {str(e)}")
 
