@@ -4,3 +4,8 @@ beautifulsoup4
 pandas
 plotly
 python-dotenv
+fake-useragent
+phonenumbers
+lxml
+folium
+streamlit-folium
