@@ -58,6 +58,94 @@ if st.sidebar.button("🗑️ Reset Database (All Leads)", use_container_width=T
     except Exception as e:
         st.sidebar.error(f"Failed: {str(e)}")
 
+if st.sidebar.button("📥 Seed Leads from CSV", use_container_width=True):
+    try:
+        import os
+        import pandas as pd
+        from database import create_lead, lead_exists
+        from geocoding import geocode_address
+        from regeocode_csv_leads import CITIES_MAP
+        
+        csv_path = "leads_qualified.csv"
+        if not os.path.exists(csv_path):
+            st.sidebar.error("leads_qualified.csv not found in repository.")
+        else:
+            df = pd.read_csv(csv_path)
+            success_count = 0
+            for idx, row in df.iterrows():
+                company_name = str(row.get("company_name", "")).strip()
+                if not company_name or company_name.lower() in ("nan", ""):
+                    continue
+                if lead_exists(company_name):
+                    continue
+                    
+                website = str(row.get("website", "")) if pd.notna(row.get("website")) else ""
+                email = str(row.get("business_email", "")) if pd.notna(row.get("business_email")) else ""
+                phone = str(row.get("business_phone", "")) if pd.notna(row.get("business_phone")) else ""
+                whatsapp = str(row.get("whatsapp", "")) if pd.notna(row.get("whatsapp")) else ""
+                contact_person = str(row.get("contact_person", "")) if pd.notna(row.get("contact_person")) else ""
+                designation = str(row.get("designation", "")) if pd.notna(row.get("designation")) else ""
+                category = str(row.get("product_category", "")) if pd.notna(row.get("product_category")) else ""
+                score = int(row.get("total_score", 0)) if pd.notna(row.get("total_score")) else 0
+                b_type = str(row.get("company_type", "")) if pd.notna(row.get("company_type")) else ""
+                reason = str(row.get("reason", "")) if pd.notna(row.get("reason")) else ""
+                q_status = str(row.get("qualification_status", "Unverified")) if pd.notna(row.get("qualification_status")) else "Unverified"
+                
+                website = "" if website.lower() in ("nan", "not_found") else website
+                email = "" if email.lower() in ("nan", "not_found") else email
+                phone = "" if phone.lower() in ("nan", "not_found") else phone
+                whatsapp = "" if whatsapp.lower() in ("nan", "not_found") else whatsapp
+                contact_person = "" if contact_person.lower() in ("nan", "not_found") else contact_person
+                designation = "" if designation.lower() in ("nan", "not_found") else designation
+                b_type = "" if b_type.lower() in ("nan", "not_found") else b_type
+                
+                # Dynamic city extraction
+                inferred_city = "Moscow"
+                text_to_search = (reason + " " + company_name).lower()
+                for key, city_name in CITIES_MAP.items():
+                    if key in text_to_search:
+                        inferred_city = city_name
+                        break
+                if "812" in phone or "812" in text_to_search:
+                    inferred_city = "Saint Petersburg"
+                elif "846" in phone:
+                    inferred_city = "Samara"
+                elif "863" in phone:
+                    inferred_city = "Rostov-on-Don"
+                
+                # Geocode
+                lat, lon, region = geocode_address(inferred_city, "Russia")
+                
+                lead_data = {
+                    "company_name": company_name,
+                    "website": website,
+                    "email": email,
+                    "phone": phone,
+                    "whatsapp": whatsapp,
+                    "country": "Russia",
+                    "city": inferred_city,
+                    "status": "Approved" if score >= 60 else "Scraped",
+                    "campaign": "CSV Import Batch",
+                    "notes": reason,
+                    "business_type": b_type,
+                    "product_category": category,
+                    "qualification_score": score,
+                    "verification_status": q_status,
+                    "contact_person": contact_person,
+                    "contact_person_title": designation,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "region_state": region,
+                    "campaign_marketing_status": "Pending"
+                }
+                create_lead(**lead_data)
+                success_count += 1
+            st.sidebar.success(f"Successfully seeded {success_count} leads!")
+            st.rerun()
+    except Exception as e:
+        st.sidebar.error(f"Import failed: {str(e)}")
+
+
 # Sidebar Campaign Automation
 st.sidebar.markdown("---")
 st.sidebar.subheader("Campaign Automation")
