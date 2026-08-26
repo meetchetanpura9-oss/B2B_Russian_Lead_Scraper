@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+ENV/
+env/
+.venv/
+
+# Credentials and Database Configuration
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.db
+linkedin_session.json
+
+# Logs
+*.log
+logs/
